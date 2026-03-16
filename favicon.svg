@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect x="0" y="0" width="512" height="512" rx="110" fill="#0C0E1A"/>
+  <polygon points="256,42 432,148 432,364 256,470 80,364 80,148" fill="none" stroke="#1E3A5F" stroke-width="3"/>
+  <polygon points="256,130 370,194 370,318 256,382 142,318 142,194" fill="#111827"/>
+  <polygon points="256,130 370,194 370,318 256,382 142,318 142,194" fill="none" stroke="#2563EB" stroke-width="2"/>
+  <path d="M256,152 C220,152 192,175 188,208 L182,290 C182,310 196,326 216,330 L240,334 L240,360 L272,360 L272,334 L296,330 C316,326 330,310 330,290 L324,208 C320,175 292,152 256,152 Z" fill="#1E3A5F"/>
+  <path d="M256,155 L256,210" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>
+  <path d="M210,248 C210,244 214,240 222,240 L248,240 L248,268 L222,268 C214,268 210,264 210,260 Z" fill="#0A0F1E"/>
+  <path d="M210,248 C210,244 214,240 222,240 L248,240 L248,268 L222,268 C214,268 210,264 210,260 Z" fill="none" stroke="#2563EB" stroke-width="1.5"/>
+  <path d="M302,248 C302,244 298,240 290,240 L264,240 L264,268 L290,268 C298,268 302,264 302,260 Z" fill="#0A0F1E"/>
+  <path d="M302,248 C302,244 298,240 290,240 L264,240 L264,268 L290,268 C298,268 302,264 302,260 Z" fill="none" stroke="#2563EB" stroke-width="1.5"/>
+  <ellipse cx="229" cy="254" rx="10" ry="8" fill="#3B82F6" opacity=".9"/>
+  <ellipse cx="229" cy="254" rx="5" ry="4" fill="#93C5FD"/>
+  <ellipse cx="283" cy="254" rx="10" ry="8" fill="#3B82F6" opacity=".9"/>
+  <ellipse cx="283" cy="254" rx="5" ry="4" fill="#93C5FD"/>
+  <path d="M216,330 L240,334 L240,355 C240,360 248,364 256,364 C264,364 272,360 272,355 L272,334 L296,330 C288,344 274,354 256,354 C238,354 224,344 216,330 Z" fill="#1E3A5F"/>
+  <path d="M216,330 L240,334 L240,355 C240,360 248,364 256,364 C264,364 272,360 272,355 L272,334 L296,330" fill="none" stroke="#2563EB" stroke-width="1.5"/>
+  <rect x="252" y="268" width="8" height="18" rx="4" fill="#1a2744"/>
+  <rect x="252" y="268" width="8" height="18" rx="4" fill="none" stroke="#2563EB" stroke-width="1"/>
+  <text x="256" y="410" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="38" font-weight="800" fill="#3B82F6" letter-spacing="-1">LC</text>
+  <path d="M60,60 L60,90 M60,60 L90,60" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <path d="M452,60 L452,90 M452,60 L422,60" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <path d="M60,452 L60,422 M60,452 L90,452" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+  <path d="M452,452 L452,422 M452,452 L422,452" fill="none" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+</svg>
