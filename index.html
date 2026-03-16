@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LoL Coach — Arquitetura v3</title>
+<style>
+  :root {
+    --blue-bg: #E6F1FB; --blue-bd: #185FA5; --blue-tx: #0C447C; --blue-sub: #185FA5;
+    --teal-bg: #E1F5EE; --teal-bd: #0F6E56; --teal-tx: #085041; --teal-sub: #0F6E56;
+    --purple-bg: #EEEDFE; --purple-bd: #534AB7; --purple-tx: #3C3489;
+    --coral-bg: #FAECE7; --coral-bd: #993C1D; --coral-tx: #712B13;
+    --amber-bg: #FAEEDA; --amber-bd: #854F0B; --amber-tx: #633806;
+    --green-bg: #EAF3DE; --green-bd: #3B6D11; --green-tx: #27500A;
+    --red-bg: #FCEBEB; --red-bd: #A32D2D; --red-tx: #791F1F;
+    --pink-bg: #FBEAF0; --pink-bd: #993556; --pink-tx: #72243E;
+    --bg: #ffffff; --bg2: #f8f8f6; --bg3: #f1efe8;
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --border: #d3d1c7; --border2: #b4b2a9;
+    --radius: 10px; --radius-sm: 7px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); font-size: 14px; }
+
+  /* LAYOUT */
+  .page { display: flex; min-height: 100vh; }
+  .sidebar { width: 240px; background: var(--bg); border-right: 1px solid var(--border); padding: 24px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; flex-shrink: 0; }
+  .main { flex: 1; padding: 32px 40px; max-width: 980px; }
+
+  /* SIDEBAR */
+  .sidebar-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .sidebar-logo h1 { font-size: 18px; font-weight: 700; color: var(--blue-tx); letter-spacing: -.3px; }
+  .sidebar-logo p { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .nav-section { padding: 4px 20px; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin: 12px 0 4px; }
+  .nav-item { display: block; padding: 7px 20px; font-size: 13px; color: var(--text2); cursor: pointer; border-left: 2px solid transparent; transition: all .15s; text-decoration: none; }
+  .nav-item:hover { background: var(--bg2); color: var(--text); }
+  .nav-item.active { border-left-color: var(--blue-bd); background: var(--blue-bg); color: var(--blue-tx); font-weight: 500; }
+  .nav-badge { display: inline-block; font-size: 9px; padding: 1px 6px; border-radius: 8px; margin-left: 6px; font-weight: 600; background: var(--pink-bg); color: var(--pink-tx); border: 1px solid var(--pink-bd); }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* SECTION HEADER */
+  .sec-header { margin-bottom: 24px; }
+  .sec-header h2 { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -.4px; }
+  .sec-header p { font-size: 13px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+
+  /* FLOW DIAGRAM */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .flow-layer-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; text-align: center; margin: 14px 0 6px; }
+  .flow-row { display: flex; gap: 8px; justify-content: center; }
+  .flow-arrow { text-align: center; font-size: 16px; color: var(--text3); margin: 2px 0; line-height: 1; }
+
+  /* BOXES */
+  .box { border: 1px solid; border-radius: var(--radius-sm); padding: 9px 16px; font-size: 12px; font-weight: 600; text-align: center; cursor: pointer; transition: transform .12s, box-shadow .12s; line-height: 1.3; }
+  .box:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  .box sub { font-size: 10px; font-weight: 400; display: block; margin-top: 3px; line-height: 1.4; }
+  .box.blue   { background: var(--blue-bg);   border-color: var(--blue-bd);   color: var(--blue-tx);   } .box.blue sub   { color: var(--blue-sub); }
+  .box.teal   { background: var(--teal-bg);   border-color: var(--teal-bd);   color: var(--teal-tx);   } .box.teal sub   { color: var(--teal-sub); }
+  .box.purple { background: var(--purple-bg); border-color: var(--purple-bd); color: var(--purple-tx); }
+  .box.coral  { background: var(--coral-bg);  border-color: var(--coral-bd);  color: var(--coral-tx);  }
+  .box.amber  { background: var(--amber-bg);  border-color: var(--amber-bd);  color: var(--amber-tx);  }
+  .box.green  { background: var(--green-bg);  border-color: var(--green-bd);  color: var(--green-tx);  }
+  .box.red    { background: var(--red-bg);    border-color: var(--red-bd);    color: var(--red-tx);    }
+  .box.pink   { background: var(--pink-bg);   border-color: var(--pink-bd);   color: var(--pink-tx);   }
+  .box.wide   { flex: 1; max-width: 360px; }
+  .box.full   { width: 100%; }
+
+  /* PRE-GAME CONTAINER */
+  .pregame-wrap { border: 2px dashed var(--pink-bd); border-radius: var(--radius); padding: 14px; margin: 4px 0; position: relative; background: rgba(251,234,240,.25); }
+  .pregame-badge { position: absolute; top: -10px; left: 16px; background: var(--bg3); padding: 0 8px; font-size: 10px; font-weight: 700; color: var(--pink-tx); letter-spacing: .05em; text-transform: uppercase; }
+
+  /* CARDS */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .card h4 { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+  .card p { font-size: 12px; color: var(--text2); line-height: 1.55; }
+  .card .tags { margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap; }
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 8px; font-weight: 600; }
+  .tag-api    { background: var(--blue-bg);   color: var(--blue-tx);   border: 1px solid var(--blue-bd); }
+  .tag-cv     { background: var(--purple-bg); color: var(--purple-tx); border: 1px solid var(--purple-bd); }
+  .tag-h      { background: var(--teal-bg);   color: var(--teal-tx);   border: 1px solid var(--teal-bd); }
+  .tag-pg     { background: var(--pink-bg);   color: var(--pink-tx);   border: 1px solid var(--pink-bd); }
+  .tag-jri    { background: var(--red-bg);    color: var(--red-tx);    border: 1px solid var(--red-bd); }
+  .tag-pt     { background: var(--amber-bg);  color: var(--amber-tx);  border: 1px solid var(--amber-bd); }
+
+  /* NOTE */
+  .note { border-left: 3px solid var(--blue-bd); padding: 8px 12px; background: var(--blue-bg); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 12px; color: var(--blue-tx); line-height: 1.55; margin-bottom: 14px; }
+  .note.pink  { border-left-color: var(--pink-bd);   background: var(--pink-bg);   color: var(--pink-tx); }
+  .note.amber { border-left-color: var(--amber-bd);  background: var(--amber-bg);  color: var(--amber-tx); }
+  .note.red   { border-left-color: var(--red-bd);    background: var(--red-bg);    color: var(--red-tx); }
+
+  /* RISK TABLE */
+  .risk-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 14px 0; }
+  .risk-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .risk-card h5 { font-size: 12px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .risk-card p { font-size: 11px; color: var(--text2); line-height: 1.4; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .dot-g { background: #639922; } .dot-y { background: #BA7517; } .dot-r { background: #E24B4A; }
+
+  /* LANE TABS */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tab { padding: 5px 14px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; color: var(--text2); background: transparent; transition: all .15s; }
+  .tab:hover { color: var(--text); border-color: var(--border2); }
+  .tab.active { background: var(--blue-bg); color: var(--blue-tx); border-color: var(--blue-bd); font-weight: 600; }
+  .lane-panel { display: none; } .lane-panel.active { display: block; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 14px 0; }
+  th { background: #1A237E; color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
+  td { padding: 7px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:nth-child(even) td { background: var(--bg2); }
+  tr:hover td { background: var(--blue-bg); }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding: 12px 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .legend span { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .leg-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  /* TOOLTIP */
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .tooltip-wrap .tt { visibility: hidden; background: #1a1a18; color: #fff; font-size: 11px; padding: 5px 9px; border-radius: 6px; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); white-space: nowrap; z-index: 10; opacity: 0; transition: opacity .15s; pointer-events: none; }
+  .tooltip-wrap:hover .tt { visibility: visible; opacity: 1; }
+
+  /* RESPONSIVE */
+  @media (max-width: 720px) {
+    .page { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: relative; }
+    .main { padding: 20px 16px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .risk-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <h1>LoL Coach</h1>
+      <p>Arquitetura v3.0</p>
+    </div>
+    <div class="nav-section">Visão geral</div>
+    <a class="nav-item active" onclick="show('overview')">Fluxo completo</a>
+    <a class="nav-item" onclick="show('pregame')">Pre-game briefing <span class="nav-badge">novo</span></a>
+    <div class="nav-section">Camadas</div>
+    <a class="nav-item" onclick="show('entrada')">Entrada de dados</a>
+    <a class="nav-item" onclick="show('contexto')">Matchup + Jungle Risk</a>
+    <a class="nav-item" onclick="show('lanes')">Análise por lane</a>
+    <a class="nav-item" onclick="show('tracker')">Performance Tracker</a>
+    <a class="nav-item" onclick="show('saida')">Saída e dashboard</a>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ══════ OVERVIEW ══════ -->
+    <div class="panel active" id="panel-overview">
+      <div class="sec-header">
+        <h2>Fluxo completo do sistema</h2>
+        <p>Clique em qualquer bloco para navegar para a seção correspondente.</p>
+      </div>
+      <div class="flow">
+
+        <div class="flow-layer-label">Entrada de dados</div>
+        <div class="flow-row">
+          <div class="box blue" onclick="show('entrada')">Riot Live API<sub>localhost:2999 · a cada 4s</sub></div>
+          <div class="box blue" onclick="show('entrada')">Riot Games API<sub>histórico · benchmarks · patch</sub></div>
+          <div class="box blue" onclick="show('entrada')">OpenCV<sub>visão computacional · minimapa</sub></div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-layer-label">Detecção</div>
+        <div class="flow-row">
+          <div class="box teal full" onclick="show('entrada')">GameWatcher<sub>detecta loading screen · identifica os 10 campeões · dispara pre-game e coaching</sub></div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="pregame-wrap">
+          <div class="pregame-badge">pre-game briefing · loading screen</div>
+          <div class="flow-row" style="margin-bottom:8px">
+            <div class="box pink wide" onclick="show('pregame')">Matchup DB local (JSON)<sub>kill pressure · spike · estilo · dive flag · combos</sub></div>
+            <div class="box pink wide" onclick="show('pregame')">Prompt de pré-jogo (Claude API)<sub>retorno estruturado em 2–4s</sub></div>
+          </div>
+          <div class="flow-row">
+            <div class="box pink full" onclick="show('pregame')">Tela de briefing<sub>sua matchup · strong side · weak side · pressão de mapa · alerta de combo inimigo</sub></div>
+          </div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-layer-label">Contexto em partida</div>
+        <div class="flow-row">
+          <div class="box purple wide" onclick="show('contexto')">Matchup Engine<sub>perfil de ameaça · benchmark por matchup</sub></div>
+          <div class="box red wide" onclick="show('contexto')">Jungle Risk Index<sub>posição · last seen · ward coverage</sub></div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-layer-label">Análise por lane</div>
+        <div class="flow-row">
+          <div class="box teal" onclick="show('lanes')">Top<sub>wave · TP · split</sub></div>
+          <div class="box teal" onclick="show('lanes')">Jungle<sub>clear · gank · obj</sub></div>
+          <div class="box teal" onclick="show('lanes')">Mid<sub>roam · CS · priority</sub></div>
+          <div class="box teal" onclick="show('lanes')">ADC<sub>farm · spike · pos</sub></div>
+          <div class="box teal" onclick="show('lanes')">Support<sub>visão · engage · peel</sub></div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-layer-label">Performance histórica</div>
+        <div class="flow-row">
+          <div class="box amber full" onclick="show('tracker')">PerformanceTracker<sub>média móvel · tendência · comparação intrapartida · filtragem por matchup</sub></div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-layer-label">Decisão</div>
+        <div class="flow-row">
+          <div class="box coral full">CoachOrchestrator<sub>filtra ruído · prioriza erros acionáveis · injeta briefing + matchup + jungle risk + histórico</sub></div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-layer-label">Inteligência</div>
+        <div class="flow-row">
+          <div class="box amber full">Claude API<sub>feedback em linguagem natural · contexto completo de role · matchup · histórico · briefing</sub></div>
+        </div>
+        <div class="flow-arrow">↓</div>
+
+        <div class="flow-layer-label">Saída</div>
+        <div class="flow-row">
+          <div class="box green wide" onclick="show('saida')">VoiceService (TTS)<sub>fala em tempo real</sub></div>
+          <div class="box green" onclick="show('saida')">SessionLogger<sub>persiste eventos</sub></div>
+          <div class="box green wide" onclick="show('saida')">Dashboard Web<sub>análise pós-partida</sub></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span><span class="leg-dot" style="background:var(--blue-bg);border:1px solid var(--blue-bd)"></span>Live API / Games API</span>
+        <span><span class="leg-dot" style="background:var(--teal-bg);border:1px solid var(--teal-bd)"></span>Análise por lane</span>
+        <span><span class="leg-dot" style="background:var(--purple-bg);border:1px solid var(--purple-bd)"></span>Matchup Engine</span>
+        <span><span class="leg-dot" style="background:var(--red-bg);border:1px solid var(--red-bd)"></span>Jungle Risk Index</span>
+        <span><span class="leg-dot" style="background:var(--amber-bg);border:1px solid var(--amber-bd)"></span>IA / Performance Tracker</span>
+        <span><span class="leg-dot" style="background:var(--pink-bg);border:1px solid var(--pink-bd)"></span>Pre-game briefing</span>
+        <span><span class="leg-dot" style="background:var(--green-bg);border:1px solid var(--green-bd)"></span>Saída</span>
+      </div>
+    </div>
+
+    <!-- ══════ PRE-GAME ══════ -->
+    <div class="panel" id="panel-pregame">
+      <div class="sec-header">
+        <h2>Pre-game briefing</h2>
+        <p>Ativado automaticamente durante a loading screen. Entrega análise completa em 2–4 segundos, antes do primeiro minuto de jogo.</p>
+      </div>
+      <div class="note pink">A loading screen do LoL dura entre 30 e 90 segundos — tempo mais que suficiente. O GameWatcher dispara três operações em paralelo assim que detecta o início do carregamento.</div>
+
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">Fluxo de execução</h3>
+      <div class="flow-row" style="margin-bottom:8px;justify-content:flex-start;gap:10px">
+        <div class="box pink" style="text-align:left;padding:10px 14px;max-width:220px">Matchup DB local (JSON)<sub>kill pressure · spike · estilo · dive flag</sub></div>
+        <div style="font-size:20px;color:var(--text3);align-self:center">→</div>
+        <div class="box pink" style="text-align:left;padding:10px 14px;max-width:220px">Claude API — prompt de pré-jogo<sub>contexto dos 10 campeões · 2–4s</sub></div>
+        <div style="font-size:20px;color:var(--text3);align-self:center">→</div>
+        <div class="box pink" style="text-align:left;padding:10px 14px;max-width:220px">Tela de briefing<sub>exibida no app durante o loading</sub></div>
+      </div>
+
+      <hr>
+      <h3 style="font-size:15px;font-weight:600;margin:16px 0 12px;color:var(--text)">Blocos do briefing</h3>
+      <div class="card-grid">
+        <div class="card">
+          <h4>Sua matchup</h4>
+          <p>Kill pressure relativo, quem tem vantagem no early, spike de item de cada lado, o que o inimigo quer fazer e como neutralizar.</p>
+          <div class="tags"><span class="tag tag-pg">Pre-game</span><span class="tag tag-cv">Matchup DB</span></div>
+        </div>
+        <div class="card">
+          <h4>Strong side</h4>
+          <p>Lanes com vantagem clara de early game — onde o jungle deve priorizar tempo e recursos nos primeiros minutos.</p>
+          <div class="tags"><span class="tag tag-pg">Pre-game</span></div>
+        </div>
+        <div class="card">
+          <h4>Weak side</h4>
+          <p>Lanes em desvantagem estrutural — orientação de como jogar safe e não amplificar a diferença de early.</p>
+          <div class="tags"><span class="tag tag-pg">Pre-game</span></div>
+        </div>
+        <div class="card">
+          <h4>Pressão de mapa</h4>
+          <p>Estilo de jogo ideal para a composição aliada: poke, engage, splitpush, teamfight ou scaling.</p>
+          <div class="tags"><span class="tag tag-pg">Pre-game</span><span class="tag tag-cv">Matchup DB</span></div>
+        </div>
+        <div class="card">
+          <h4>Alerta de combo inimigo</h4>
+          <p>Se a composição inimiga tem combo claro (ex: Malphite + Yasuo, Orianna + Jarvan), o briefing avisa com instrução de como mitigar.</p>
+          <div class="tags"><span class="tag tag-pg">Pre-game</span><span class="tag tag-cv">Matchup DB</span></div>
+        </div>
+        <div class="card">
+          <h4>Pré-configura o coaching</h4>
+          <p>Strong/weak side ajustam thresholds por lane. Combos detectados são carregados no Matchup Engine antes do primeiro minuto.</p>
+          <div class="tags"><span class="tag tag-pg">Pre-game</span><span class="tag tag-cv">Matchup Engine</span></div>
+        </div>
+      </div>
+
+      <hr>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">Matchup DB local</h3>
+      <div class="note">Mantido em JSON local para eliminar latência de rede. Atualizado a cada patch via Riot Games API quando o app está idle. Cada entrada contém:</div>
+      <table>
+        <tr><th>Campo</th><th>Descrição</th></tr>
+        <tr><td>Kill pressure</td><td>Por fase: early (pré-6), mid (6–11) e late (12+)</td></tr>
+        <tr><td>Spike de item</td><td>Primeiro, segundo e terceiro item de cada campeão</td></tr>
+        <tr><td>Estilo de jogo</td><td>Poke, all-in, sustain, wave clear ou split-push</td></tr>
+        <tr><td>Win rate por elo</td><td>Bronze/Silver, Gold/Plat, Emerald/Diamond segmentados</td></tr>
+        <tr><td>Dive flag</td><td>Modifica automaticamente o Jungle Risk Index da lane</td></tr>
+        <tr><td>Combos conhecidos</td><td>Alimenta o detector de sinergia inimiga em tempo real</td></tr>
+      </table>
+    </div>
+
+    <!-- ══════ ENTRADA ══════ -->
+    <div class="panel" id="panel-entrada">
+      <div class="sec-header">
+        <h2>Entrada de dados</h2>
+        <p>Três fontes complementares alimentam o sistema. Todas as operações de rede são assíncronas e não bloqueiam a UI.</p>
+      </div>
+      <div class="card-grid">
+        <div class="card">
+          <h4>Riot Live Client Data API</h4>
+          <p>Disponível em <code style="background:var(--bg2);padding:1px 5px;border-radius:4px;font-size:11px">localhost:2999</code>. Fornece o estado completo da partida em tempo real — eventos, posições, itens, ouro, habilidades. Base para todos os feedbacks em tempo real. Opera dentro dos ToS da Riot.</p>
+          <div class="tags"><span class="tag tag-api">Polling a cada 4s</span><span class="tag tag-h">Sem ToS violation</span></div>
+        </div>
+        <div class="card">
+          <h4>Riot Games API</h4>
+          <p>Dados históricos de ranked, estatísticas por campeão, benchmarks de desempenho por patch e elo. Usada pelo PerformanceTracker para popular o histórico do jogador e pelo Matchup DB para manter dados atualizados.</p>
+          <div class="tags"><span class="tag tag-api">REST API</span><span class="tag tag-pt">Histórico</span></div>
+        </div>
+        <div class="card">
+          <h4>OpenCV</h4>
+          <p>Visão computacional utilizada de forma complementar para capturar informações não expostas pela Live API — principalmente posicionamento relativo no minimapa e detecção de agrupamentos de campeões.</p>
+          <div class="tags"><span class="tag tag-cv">Visão computacional</span></div>
+        </div>
+        <div class="card">
+          <h4>GameWatcher</h4>
+          <p>Orquestra as três fontes. Detecta dois eventos críticos: início da loading screen (dispara pre-game briefing) e início da partida em si (ativa o loop de coaching em tempo real).</p>
+          <div class="tags"><span class="tag tag-h">Background thread</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ CONTEXTO ══════ -->
+    <div class="panel" id="panel-contexto">
+      <div class="sec-header">
+        <h2>Matchup Engine e Jungle Risk Index</h2>
+        <p>O contexto de matchup e risco de jungle é injetado em todos os analisadores de lane antes de qualquer feedback ser gerado.</p>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">Matchup Engine</h3>
+      <div class="note">Carregado no início de cada partida. Todos os feedbacks de lane são ajustados pelo contexto da matchup — o mesmo CS/min que seria "bom" contra um campeão fraco de wave clear pode ser insuficiente contra um que escala rapidamente.</div>
+      <div class="card-grid">
+        <div class="card"><h4>Kill pressure por fase</h4><p>Early (pré-6), mid (6–11) e late (12+). Define quando o sistema pode incentivar trades e quando deve recomendar cautela.</p><div class="tags"><span class="tag tag-cv">Matchup DB</span></div></div>
+        <div class="card"><h4>Benchmark por matchup</h4><p>CS/min esperado na matchup específica, não um benchmark genérico de elo. Reduz falsos positivos em matchups naturalmente difíceis de farmar.</p><div class="tags"><span class="tag tag-cv">Matchup DB</span></div></div>
+        <div class="card"><h4>Dive potential</h4><p>Matchups com campeões de dive potential (Irelia, Jax, Darius) elevam automaticamente o threshold de alerta do Jungle Risk Index para aquela lane.</p><div class="tags"><span class="tag tag-jri">Jungle Risk</span></div></div>
+        <div class="card"><h4>Detecção de combos</h4><p>Sinergia inimiga entre lanes (Orianna + Jarvan, Thresh + Nocturne). Alerta quando os dois campeões se aproximam em sincronismo.</p><div class="tags"><span class="tag tag-cv">Matchup DB</span></div></div>
+      </div>
+
+      <hr>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">Jungle Risk Index</h3>
+      <div class="note red">Estado de alerta atualizado continuamente. Cruza quatro variáveis: última posição conhecida do jungle inimigo, tempo desde o último avistamento, lado de início e cobertura de wards na lane.</div>
+      <div class="risk-row">
+        <div class="risk-card"><h5><span class="dot dot-g"></span>Seguro</h5><p>Jungle visto no lado oposto há menos de 30s. Coach pode incentivar trades e pressão de lane.</p></div>
+        <div class="risk-card"><h5><span class="dot dot-y"></span>Incerto</h5><p>Jungle sumido há 60s+. Coach adiciona aviso de cautela em trades longas e situações flashless.</p></div>
+        <div class="risk-card"><h5><span class="dot dot-r"></span>Perigo</h5><p>Jungle visto próximo + lane sem ward. Alerta imediato para recuar e wardar antes de qualquer engajamento.</p></div>
+      </div>
+    </div>
+
+    <!-- ══════ LANES ══════ -->
+    <div class="panel" id="panel-lanes">
+      <div class="sec-header">
+        <h2>Análise por lane</h2>
+        <p>Cinco analisadores independentes, cada um recebendo contexto de matchup, jungle risk e histórico pessoal antes de gerar feedback.</p>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="showLane('jungle',this)">Jungle</button>
+        <button class="tab" onclick="showLane('top',this)">Top</button>
+        <button class="tab" onclick="showLane('mid',this)">Mid</button>
+        <button class="tab" onclick="showLane('adc',this)">ADC</button>
+        <button class="tab" onclick="showLane('support',this)">Support</button>
+      </div>
+
+      <div class="lane-panel active" id="lp-jungle">
+        <div class="note">Jungle é a variável que modifica o risco de todas as outras lanes. O Jungle Risk Index é atualizado continuamente e injetado no contexto de cada análise.</div>
+        <div class="card-grid">
+          <div class="card"><h4>Clear time</h4><p>Tempo do primeiro clear vs benchmark por campeão. Detecta rota ineficiente e perda de tempo entre camps.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-h">Heurística</span></div></div>
+          <div class="card"><h4>Timing de ganks</h4><p>Janelas perdidas cruzando KDA das lanes com posição do jungle e disponibilidade de flash.</p><div class="tags"><span class="tag tag-api">Live API</span></div></div>
+          <div class="card"><h4>Rotação de objetivos</h4><p>Posição do jungle 45s antes de Dragon, Baron e Arauto. Alerta proativo para wardar o pit.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-h">Timer</span></div></div>
+          <div class="card"><h4>Side clear de início</h4><p>Detecta lado inicial do jungle inimigo pelo primeiro camp morto. Alimenta o Jungle Risk Index imediatamente.</p><div class="tags"><span class="tag tag-api">Live API</span></div></div>
+        </div>
+        <div class="risk-row">
+          <div class="risk-card"><h5><span class="dot dot-g"></span>Seguro</h5><p>Jungle visto lado oposto &lt;30s. Incentiva trades.</p></div>
+          <div class="risk-card"><h5><span class="dot dot-y"></span>Incerto</h5><p>Sumido há 60s+. Cautela em trades longas.</p></div>
+          <div class="risk-card"><h5><span class="dot dot-r"></span>Perigo</h5><p>Próximo + sem ward. Recua imediatamente.</p></div>
+        </div>
+      </div>
+
+      <div class="lane-panel" id="lp-top">
+        <div class="note">Lane mais isolada — jungle risk tem peso máximo. Sugestões de trade agressiva são bloqueadas com estado incerto ou perigo.</div>
+        <div class="card-grid">
+          <div class="card"><h4>Wave + TP</h4><p>Detecta wave congelada ou empilhada sem TP disponível. Evita perda de gold parado na lane.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-h">Heurística</span></div></div>
+          <div class="card"><h4>Split-push timing</h4><p>Cruza posição do top laner com status de objetivos no mapa e disponibilidade de TP.</p><div class="tags"><span class="tag tag-api">Live API</span></div></div>
+          <div class="card"><h4>Gold diff contextualizado</h4><p>Separa atraso de lane de atraso por ganks. Benchmark por matchup específica.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-cv">Matchup</span></div></div>
+          <div class="card"><h4>Dive risk</h4><p>Matchups com dive potential elevam o threshold do Jungle Risk Index automaticamente para essa lane.</p><div class="tags"><span class="tag tag-cv">Matchup Engine</span></div></div>
+        </div>
+      </div>
+
+      <div class="lane-panel" id="lp-mid">
+        <div class="note">Lane com maior influência bidirecional. O coach pondera continuamente roam vs. manter priority dependendo do jungle inimigo.</div>
+        <div class="card-grid">
+          <div class="card"><h4>Roaming windows</h4><p>Wave empurrada + inimigo na base + jungle disponível. Janela de roam para bot ou top.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-h">Heurística</span></div></div>
+          <div class="card"><h4>CS/min contextualizado</h4><p>Penaliza roam sem retorno que causou queda de farm sem kill ou assist convertido.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-cv">Matchup</span></div></div>
+          <div class="card"><h4>Priority em objetivos</h4><p>Avisa quando mid está sem priority com Dragon ou Baron próximo do spawn.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-h">Timer</span></div></div>
+          <div class="card"><h4>Sinergia com jungle</h4><p>Detecta combos como Orianna + Jarvan quando jungle se aproxima da mid lane em sincronismo.</p><div class="tags"><span class="tag tag-cv">Matchup Engine</span></div></div>
+        </div>
+      </div>
+
+      <div class="lane-panel" id="lp-adc">
+        <div class="note">Bot lane recebe mais ganks no early game do meta atual. O sistema detecta padrão de início do jungle inimigo e antecipa rotações.</div>
+        <div class="card-grid">
+          <div class="card"><h4>CS + custo de morte</h4><p>Quantifica gold real perdido por morte: wave + bounty. "Essa morte custou 18 minions e um plate."</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-h">Heurística</span></div></div>
+          <div class="card"><h4>Posição em teamfight</h4><p>Detecta ADC muito próximo da frontline nos primeiros segundos de engage via posição relativa.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-cv">Posição relativa</span></div></div>
+          <div class="card"><h4>Power spike perdido</h4><p>Item crítico completo + tempo excessivo na base sem pressionar a lane ou rotar para objetivo.</p><div class="tags"><span class="tag tag-api">Live API</span></div></div>
+          <div class="card"><h4>Gank antecipado</h4><p>Padrão histórico de início bot side do jungle inimigo cruzado com posição atual da dupla.</p><div class="tags"><span class="tag tag-jri">Jungle Risk</span></div></div>
+        </div>
+      </div>
+
+      <div class="lane-panel" id="lp-support">
+        <div class="note">Avaliado por habilitação e visão — não por dano. Vision score relativo ao tempo de jogo é a métrica central.</div>
+        <div class="card-grid">
+          <div class="card"><h4>Vision score vs benchmark</h4><p>"Min 20, vision score 8 — média para support aqui é 18." Comparação por minuto, não total.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-h">Benchmark</span></div></div>
+          <div class="card"><h4>Ward em objetivos</h4><p>Ward no pit de Dragon ou Baron com pelo menos 90s de antecedência. Alerta proativo antes do timer.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-h">Timer</span></div></div>
+          <div class="card"><h4>Engage e peel timing</h4><p>Ultimate com ADC fora de range ou já morto. Cruza posição relativa da dupla para avaliar eficácia.</p><div class="tags"><span class="tag tag-api">Live API</span><span class="tag tag-cv">Posição relativa</span></div></div>
+          <div class="card"><h4>Combo inimigo</h4><p>Thresh + Nocturne, Leona + Jarvan — avisa quando jungle se aproxima da bot lane em sincronismo.</p><div class="tags"><span class="tag tag-cv">Matchup Engine</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ TRACKER ══════ -->
+    <div class="panel" id="panel-tracker">
+      <div class="sec-header">
+        <h2>PerformanceTracker</h2>
+        <p>Compara o jogador com sua própria média histórica — a funcionalidade que transforma o produto de ferramenta em coach de verdade.</p>
+      </div>
+      <div class="note amber">Benchmarks genéricos dizem "você está abaixo da média". O histórico pessoal diz "você melhorou 0.8 CS/min nas últimas 10 partidas com Vi". O segundo cria vínculo emocional com o produto — o jogador volta para ver o número subir.</div>
+
+      <h3 style="font-size:15px;font-weight:600;margin:16px 0 12px;color:var(--text)">Três camadas de comparação</h3>
+      <div class="card-grid">
+        <div class="card">
+          <h4>Intrapartida (tempo real)</h4>
+          <p>Durante a partida, o coach cruza a métrica atual com a média histórica pessoal. "Você está com 5.1 CS/min. Sua média com Vi é 5.8 — você está abaixo do seu próprio padrão hoje."</p>
+          <div class="tags"><span class="tag tag-pt">Tempo real</span></div>
+        </div>
+        <div class="card">
+          <h4>Comparação pós-partida</h4>
+          <p>Dashboard exibe a partida atual vs média pessoal vs benchmark de elo em três colunas comparativas lado a lado.</p>
+          <div class="tags"><span class="tag tag-pt">Dashboard</span></div>
+        </div>
+        <div class="card">
+          <h4>Linha de tendência</h4>
+          <p>Gráfico das últimas N partidas por métrica — mostra se o jogador está em evolução, estagnação ou regressão.</p>
+          <div class="tags"><span class="tag tag-pt">Dashboard</span></div>
+        </div>
+        <div class="card">
+          <h4>Filtragem por matchup</h4>
+          <p>CS/min contra Malzahar é diferente contra Yasuo. O tracker agrupa por matchup quando há 3+ partidas na combinação, e usa média geral quando a amostra é insuficiente.</p>
+          <div class="tags"><span class="tag tag-cv">Matchup Engine</span><span class="tag tag-pt">Histórico</span></div>
+        </div>
+      </div>
+
+      <hr>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)">Métricas persistidas por role</h3>
+      <table>
+        <tr><th>Role</th><th>Métricas</th></tr>
+        <tr><td><b>Jungle</b></td><td>Clear time, CS/min, ganks realizados, objetivos contestados, objetivos perdidos sem presença</td></tr>
+        <tr><td><b>Top</b></td><td>CS/min, gold diff aos 10 e 15 min, TPs com impacto vs desperdiçados, mortes antes do min 15</td></tr>
+        <tr><td><b>Mid</b></td><td>CS/min, roams com conversão (kill/assist) vs sem retorno, priority perdida em timer de objetivo</td></tr>
+        <tr><td><b>ADC</b></td><td>CS/min, gold perdido por morte (wave + bounty), teamfights com posicionamento ruim detectado</td></tr>
+        <tr><td><b>Support</b></td><td>Vision score/min, wards em objetivos antecipadas vs tardias, engages com ADC in range vs fora</td></tr>
+      </table>
+    </div>
+
+    <!-- ══════ SAÍDA ══════ -->
+    <div class="panel" id="panel-saida">
+      <div class="sec-header">
+        <h2>Saída e dashboard</h2>
+        <p>Três canais de saída complementares — voz em tempo real, persistência de dados e análise pós-partida.</p>
+      </div>
+      <div class="card-grid">
+        <div class="card">
+          <h4>VoiceService (TTS)</h4>
+          <p>Feedback de voz entregue diretamente pelo speaker do computador. MVP usa Windows Speech Synthesis nativo — gratuito, offline, sem latência de rede. Migração para ElevenLabs planejada para distribuição pública.</p>
+          <div class="tags"><span class="tag tag-h">Windows nativo</span></div>
+        </div>
+        <div class="card">
+          <h4>SessionLogger</h4>
+          <p>Persiste todos os eventos da partida localmente: métricas por role, erros detectados com timestamp, contexto de matchup e jungle risk, e resultado final. Base do PerformanceTracker e do Dashboard.</p>
+          <div class="tags"><span class="tag tag-pt">JSON local</span></div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1">
+          <h4>Dashboard Web pós-partida</h4>
+          <p>Aplicação web local gerada ao final de cada partida. Exibe: timeline de eventos com marcação de erros, gráfico comparativo (partida atual vs média pessoal vs benchmark de elo), linha de tendência histórica das principais métricas, pontos fortes e de melhoria, e análise gerada pelo Claude em linguagem natural.</p>
+          <div class="tags"><span class="tag tag-api">Web local</span><span class="tag tag-pt">Histórico</span><span class="tag tag-h">Claude API</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+      n.classList.add('active');
+    }
+  });
+  window.scrollTo(0, 0);
+}
+function showLane(id, el) {
+  document.querySelectorAll('.lane-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('lp-' + id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
